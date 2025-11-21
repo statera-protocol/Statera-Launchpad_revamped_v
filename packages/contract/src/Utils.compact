@@ -1,0 +1,8 @@
+module Utils {
+
+    import CompactStandardLibrary;
+
+    export circuit public_key(sk: Bytes<32>): Bytes<32> {
+        return persistentHash<Vector<2, Bytes<32>>>([pad(32, "statera-launchpad:user-pk"), sk]);
+}
+}

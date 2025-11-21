@@ -1,0 +1,29 @@
+module TokenMint {
+    import CompactStandardLibrary;
+    import VariablesAndTypes;
+
+    export {createToken, uniqueIndex, nonce};
+    
+
+
+    export circuit createToken(
+        domain_sep: Bytes<32>,
+        total_amount: Uint<64>,
+    ) :[] {
+        const discloseDomainSep = disclose(domain_sep);
+        const disclosedAmount = disclose(total_amount);
+        
+        assert (disclosedAmount > 0, "token amount must be atleast 1");
+
+        const newNonce = evolveNonce(uniqueIndex, nonce);
+        
+        mintToken(
+            discloseDomainSep,
+            disclosedAmount,
+            newNonce,
+            left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+        );
+        uniqueIndex.increment(1);
+}
+
+}

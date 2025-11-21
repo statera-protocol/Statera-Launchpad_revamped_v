@@ -1,0 +1,44 @@
+module VariablesAndTypes {
+    import CompactStandardLibrary;
+
+    /** Exports the types and ledger variables **/
+    export { SaleInfo, raisedTokenPool, superAdmin, contractSalesInfo, TVL, Sale, receiverCoinPubKey, uniqueIndex, nonce, eligibleParticipants};
+
+    /** Once contract is deployed, the contract receives a specified amount of token which will be minted on the token contract provided by the organizers **/
+    ledger TVL: QualifiedCoinInfo; /** Holds token to be disbursed to investors - We expect that there would be token in the TVL before sale is being created **/
+    ledger raisedTokenPool: QualifiedCoinInfo; // Holds token invested by investors
+    ledger receiverCoinPubKey: Bytes<32>; // Receives the funds raised contributed by investors
+    sealed ledger superAdmin: Bytes<32>; // There will be one super admin, who instantiate new token sale and add or remove other admins
+    sealed ledger eligibleParticipants: Set<Bytes<32>>; // contains list of eligible users - in the whitelist
+    ledger contractSalesInfo: Map<Bytes<32>, SaleInfo>; /** Keeps record of contract information **/
+    export ledger uniqueIndex: Counter;
+    export ledger nonce: Bytes<32>; 
+
+    enum Sale { fixed, batch, Overflow, whiteList };
+
+    struct SaleInfo {
+        target: Uint<64>;
+        startTime: Uint<64>;
+        endTime: Uint<64>;
+        totalTokenAmount: Uint<128>;
+        totalTokenSold: Uint<64>;
+        saleInfoCID: Bytes<32>;
+        amountRaised: Uint<64>;
+        acceptableExchangeToken: Bytes<32>;
+        hasEnded: Boolean;
+        min: Uint<64>;
+        max: Uint<64>;
+        participant: Uint<16>;
+        organizer: Bytes<32>;
+        hasWithdrawn: Boolean;
+        exchangeRatio: Uint<64>;
+        saleType: Sale;
+        slope: Uint<32>;
+    };
+        
+    // WITNESSES
+    export witness local_secret_key(): Bytes<32>;
+    export witness generate_sale_id(): Bytes<32>;  
+
+
+}

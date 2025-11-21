@@ -1,0 +1,25 @@
+/** A directive that declare language version which informs the compiler to compile only when condition is true **/
+pragma language_version >= 0.17.0;
+
+/** imports compact standard library - making compact types available **/
+import CompactStandardLibrary;
+
+/** imports modules into compact main entry point **/
+import VariablesAndTypes;
+import Utils;
+import Admin;
+import TokenMint;
+import FixedSale;
+import WhiteListSale;
+
+/** exports types, circuits and witnesses from imported modules, making them accessible **/
+export { createFixedSale, SaleInfo, Sale, raisedTokenPool, superAdmin, contractSalesInfo, TVL, createWhiteListSale}
+
+/** Just as in ts, constructor initializes ledger variables with specified parameter during deployment **/
+constructor(coinPubKey: Bytes<32>, initialNonce: Bytes<32>) {
+    nonce = disclose(initialNonce);
+    uniqueIndex.increment(1);
+    receiverCoinPubKey = disclose(coinPubKey);
+}
+
+/** This compact page does nothing more that being the entry point to our contract and exporting all defined circuits, witnesses and ledger **/
