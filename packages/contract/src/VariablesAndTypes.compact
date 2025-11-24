@@ -2,7 +2,7 @@ module VariablesAndTypes {
     import CompactStandardLibrary;
 
     /** Exports the types and ledger variables **/
-    export { SaleInfo, raisedTokenPool, superAdmin, contractSalesInfo, TVL, Sale, receiverAddress, uniqueIndex, nonce, eligibleParticipants, UserPrivateState, FundingInfo, fundingInfo};
+    export { SaleInfo, raisedTokenPool, superAdmin, contractSalesInfo, TVL, Sale, receiverAddress, uniqueIndex, nonce, eligibleParticipants, UserPrivateState, FundingInfo, fundingInfo, SCALE_FACTOR};
 
     /** Once contract is deployed, the contract receives a specified amount of token which will be minted on the token contract provided by the organizers **/
     ledger TVL: QualifiedCoinInfo; /** Holds token to be disbursed to investors - We expect that there would be token in the TVL before sale is being created **/
@@ -12,8 +12,9 @@ module VariablesAndTypes {
     sealed ledger eligibleParticipants: Set<Bytes<32>>; // contains list of eligible users - in the whitelist
     ledger contractSalesInfo: Map<Bytes<32>, SaleInfo>; /** Keeps record of contract information **/
     ledger fundingInfo: Map<Bytes<32>, FundingInfo>; /** Keeps record of contract information **/
-    export ledger uniqueIndex: Counter;
-    export ledger nonce: Bytes<32>; 
+    sealed ledger SCALE_FACTOR: Uint<32>; // 1_000_000 subunit per assets
+    ledger uniqueIndex: Counter;
+    ledger nonce: Bytes<32>; 
 
     enum Sale { Public, Private };
 
@@ -35,11 +36,16 @@ module VariablesAndTypes {
         exchangeRatio: Uint<64>;
         saleType: Sale;
         slope: Uint<32>;
+        tgePeriod: Uint<64>;
+        tgeAllocationPercentage: Uint<8>;
+        cliffPeriod: Uint<64>;
+        vestingPeriod: Uint<64>;
+        vestClaimPercentagePerDay: Uint<8>;
     };
 
     struct FundingInfo {
         privateStateHash: Bytes<32>; // hash of user private state. To validate user private state 
-        claimed: Boolean; // checks if user has claimed allocation already
+        claimComplete: Boolean; // checks if user has claimed allocation already
     }
 
     struct UserPrivateState {
@@ -51,10 +57,13 @@ module VariablesAndTypes {
         
     // WITNESSES
     export witness local_secret_key(): Bytes<32>;
-    export witness generate_sale_id(): Bytes<32>;  
+    export witness generate_sale_id(): Bytes<32>;
     export witness get_current_time(): Uint<64>;
-    export witness calculateAllocation(ratio: Uint<64>, priceSlope: Uint<32>, contribution: Uint<128>, tokenSold: Uint<64> ): Uint<64>;
-    export witness update_user_private_state(newPrivateState: UserPrivateState) :[]; 
-    export witness get_user_private_state_hash(saleId: Bytes<32>) :UserPrivateState;
-    export witness remove_sale_from_private_state(saleId: Bytes<32>) :[];
+    export witness calculateTotalAllocation(ratio: Uint<64>, price_slope: Uint<32>, contribution: Uint<128>, token_sold: Uint<64> ): Uint<64>;
+    export witness update_user_private_state(new_private_state: UserPrivateState) :[];
+    export witness get_user_private_state_hash(sale_id: Bytes<32>) :UserPrivateState;
+    export witness remove_sale_from_private_state(sale_id: Bytes<32>) :[];
+    export witness calculate_vest_claim_percentage_per_day(vesting_duration: Uint<64>, tge_allocation_percentage: Uint<8>):Uint<8>;
+    export witness calculate_total_vest_claim(claim_per_day_percentage: Uint<8>, cliff_period: Uint<64>, totalAllocation: Uint<64>, claimedAllocation: Uint<64>): Uint<64>;
+    export witness calculate_claim_amount(percentage: Uint<8>, total_allocation: Uint<64>): Uint<64>;
 }

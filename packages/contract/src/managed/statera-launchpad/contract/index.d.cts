@@ -16,12 +16,18 @@ export type SaleInfo = { target: bigint;
                          hasWithdrawn: boolean;
                          exchangeRatio: bigint;
                          saleType: Sale;
-                         slope: bigint
+                         slope: bigint;
+                         tgePeriod: bigint;
+                         tgeAllocationPercentage: bigint;
+                         cliffPeriod: bigint;
+                         vestingPeriod: bigint;
+                         vestClaimPercentagePerDay: bigint
                        };
 
 export enum Sale { Public = 0, Private = 1 }
 
-export type FundingInfo = { privateStateHash: Uint8Array; claimed: boolean };
+export type FundingInfo = { privateStateHash: Uint8Array; claimComplete: boolean
+                          };
 
 export type UserPrivateState = { saleId: Uint8Array;
                                  contribution: bigint;
@@ -33,17 +39,26 @@ export type Witnesses<T> = {
   local_secret_key(context: __compactRuntime.WitnessContext<Ledger, T>): [T, Uint8Array];
   generate_sale_id(context: __compactRuntime.WitnessContext<Ledger, T>): [T, Uint8Array];
   get_current_time(context: __compactRuntime.WitnessContext<Ledger, T>): [T, bigint];
-  calculateAllocation(context: __compactRuntime.WitnessContext<Ledger, T>,
-                      ratio_0: bigint,
-                      priceSlope_0: bigint,
-                      contribution_0: bigint,
-                      tokenSold_0: bigint): [T, bigint];
+  calculateTotalAllocation(context: __compactRuntime.WitnessContext<Ledger, T>,
+                           ratio_0: bigint,
+                           price_slope_0: bigint,
+                           contribution_0: bigint,
+                           token_sold_0: bigint): [T, bigint];
   update_user_private_state(context: __compactRuntime.WitnessContext<Ledger, T>,
-                            newPrivateState_0: UserPrivateState): [T, []];
+                            new_private_state_0: UserPrivateState): [T, []];
   get_user_private_state_hash(context: __compactRuntime.WitnessContext<Ledger, T>,
-                              saleId_0: Uint8Array): [T, UserPrivateState];
-  remove_sale_from_private_state(context: __compactRuntime.WitnessContext<Ledger, T>,
-                                 saleId_0: Uint8Array): [T, []];
+                              sale_id_0: Uint8Array): [T, UserPrivateState];
+  calculate_vest_claim_percentage_per_day(context: __compactRuntime.WitnessContext<Ledger, T>,
+                                          vesting_duration_0: bigint,
+                                          tge_allocation_percentage_0: bigint): [T, bigint];
+  calculate_total_vest_claim(context: __compactRuntime.WitnessContext<Ledger, T>,
+                             claim_per_day_percentage_0: bigint,
+                             cliff_period_0: bigint,
+                             totalAllocation_0: bigint,
+                             claimedAllocation_0: bigint): [T, bigint];
+  calculate_claim_amount(context: __compactRuntime.WitnessContext<Ledger, T>,
+                         percentage_0: bigint,
+                         total_allocation_0: bigint): [T, bigint];
 }
 
 export type ImpureCircuits<T> = {
@@ -60,14 +75,15 @@ export type ImpureCircuits<T> = {
              max_0: bigint,
              infoCID_0: Uint8Array,
              price_slope_0: bigint,
-             isPrivate_0: boolean): __compactRuntime.CircuitResults<T, []>;
+             isPrivate_0: boolean,
+             cliff_period_0: bigint,
+             tge_period_0: bigint,
+             tge_allocation_percentage_0: bigint,
+             vesting_duration_0: bigint): __compactRuntime.CircuitResults<T, []>;
   fundSale(context: __compactRuntime.CircuitContext<T>,
            coin_0: { nonce: Uint8Array, color: Uint8Array, value: bigint },
            sale_id_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
   claimTokens(context: __compactRuntime.CircuitContext<T>, sale_id_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
-  refund(context: __compactRuntime.CircuitContext<T>,
-         sale_id_0: Uint8Array,
-         refundAmount_0: bigint): __compactRuntime.CircuitResults<T, []>;
 }
 
 export type PureCircuits = {
@@ -87,14 +103,15 @@ export type Circuits<T> = {
              max_0: bigint,
              infoCID_0: Uint8Array,
              price_slope_0: bigint,
-             isPrivate_0: boolean): __compactRuntime.CircuitResults<T, []>;
+             isPrivate_0: boolean,
+             cliff_period_0: bigint,
+             tge_period_0: bigint,
+             tge_allocation_percentage_0: bigint,
+             vesting_duration_0: bigint): __compactRuntime.CircuitResults<T, []>;
   fundSale(context: __compactRuntime.CircuitContext<T>,
            coin_0: { nonce: Uint8Array, color: Uint8Array, value: bigint },
            sale_id_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
   claimTokens(context: __compactRuntime.CircuitContext<T>, sale_id_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
-  refund(context: __compactRuntime.CircuitContext<T>,
-         sale_id_0: Uint8Array,
-         refundAmount_0: bigint): __compactRuntime.CircuitResults<T, []>;
 }
 
 export type Ledger = {

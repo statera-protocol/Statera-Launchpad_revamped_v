@@ -11,7 +11,7 @@ import TokenMint;
 import SalesManager;
 
 /** exports types, circuits and witnesses from imported modules, making them accessible **/
-export { createSale, fundSale, claimTokens, refund, SaleInfo, Sale, raisedTokenPool, superAdmin, contractSalesInfo, TVL, createYourToken, fundingInfo, SaleInfo, FundingInfo, UserPrivateState };
+export { createSale, fundSale, claimTokens, SaleInfo, Sale, raisedTokenPool, superAdmin, contractSalesInfo, TVL, createYourToken, fundingInfo, SaleInfo, FundingInfo, UserPrivateState };
 
 /** Just as in ts, constructor initializes ledger variables with specified parameter during deployment **/
 constructor(address: ZswapCoinPublicKey, initialNonce: Bytes<32>) {

@@ -97,6 +97,34 @@
           "type": {
             "type-name": "Boolean"
           }
+        },
+        {
+          "name": "cliff_period",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "tge_period",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "tge_allocation_percentage",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
+          }
+        },
+        {
+          "name": "vesting_duration",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
         }
       ],
       "result-type": {
@@ -170,31 +198,6 @@
         "types": [
         ]
       }
-    },
-    {
-      "name": "refund",
-      "pure": false,
-      "arguments": [
-        {
-          "name": "sale_id",
-          "type": {
-            "type-name": "Bytes",
-            "length": 32
-          }
-        },
-        {
-          "name": "refundAmount",
-          "type": {
-            "type-name": "Uint",
-            "maxval": 18446744073709551615
-          }
-        }
-      ],
-      "result-type": {
-        "type-name": "Tuple",
-        "types": [
-        ]
-      }
     }
   ],
   "witnesses": [
@@ -226,7 +229,7 @@
       }
     },
     {
-      "name": "calculateAllocation",
+      "name": "calculateTotalAllocation",
       "arguments": [
         {
           "name": "ratio",
@@ -236,7 +239,7 @@
           }
         },
         {
-          "name": "priceSlope",
+          "name": "price_slope",
           "type": {
             "type-name": "Uint",
             "maxval": 4294967295
@@ -250,7 +253,7 @@
           }
         },
         {
-          "name": "tokenSold",
+          "name": "token_sold",
           "type": {
             "type-name": "Uint",
             "maxval": 18446744073709551615
@@ -266,7 +269,7 @@
       "name": "update_user_private_state",
       "arguments": [
         {
-          "name": "newPrivateState",
+          "name": "new_private_state",
           "type": {
             "type-name": "Struct",
             "name": "UserPrivateState",
@@ -313,7 +316,7 @@
       "name": "get_user_private_state_hash",
       "arguments": [
         {
-          "name": "saleId",
+          "name": "sale_id",
           "type": {
             "type-name": "Bytes",
             "length": 32
@@ -356,20 +359,86 @@
       }
     },
     {
-      "name": "remove_sale_from_private_state",
+      "name": "calculate_vest_claim_percentage_per_day",
       "arguments": [
         {
-          "name": "saleId",
+          "name": "vesting_duration",
           "type": {
-            "type-name": "Bytes",
-            "length": 32
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "tge_allocation_percentage",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
           }
         }
       ],
       "result type": {
-        "type-name": "Tuple",
-        "types": [
-        ]
+        "type-name": "Uint",
+        "maxval": 255
+      }
+    },
+    {
+      "name": "calculate_total_vest_claim",
+      "arguments": [
+        {
+          "name": "claim_per_day_percentage",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
+          }
+        },
+        {
+          "name": "cliff_period",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "totalAllocation",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "claimedAllocation",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      }
+    },
+    {
+      "name": "calculate_claim_amount",
+      "arguments": [
+        {
+          "name": "percentage",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
+          }
+        },
+        {
+          "name": "total_allocation",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
       }
     }
   ],
