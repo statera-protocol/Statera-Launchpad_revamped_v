@@ -44,25 +44,24 @@
 This project shows how different components work together in the Midnight ecosystem:
 
 ```
-  ┌─────────────────────┐    ┌─────────────────────┐
-  │    Web Frontend     │    │    CLI Interface    │
-  │                     │    │                     │
-  │ • React + Material  │    │ • Interactive Menu  │
-  │ • Wallet Connect    │    │ • Contract Deploy   │
-  │ • Real-time State   │    │ • Breeding Tools    │
-  │ • Gallery View      │    │ • Market Operations │
-  └─────────────────────┘    └─────────────────────┘
+  ┌─────────────────────┐    ┌──────────────────────┐
+  │    Web Frontend     │    │    CLI Interface     │
+  │                     │    │                      │ 
+  │ • Vite React        │    │ • Interactive Menu   │
+  │ • Wallet Connect    │    │ • Contract Deploy    │
+  │ • Real-time State   │    │ • Create Token Sales │
+  │ • Projects View     │    │ • Sale Operations    │
+  └─────────────────────┘    └──────────────────────┘
            │                          │
            └──────────────────────────┘
                         │
-             ┌─────────────────────┐    ┌─────────────────────┐
-             │   Unified API       │◄──►│   Smart Contract    │
-             │                     │    │                     │
-             │ • Ledger Integration│    │ • Compact Language  │
-             │ • State Management  │    │ • NFT Integration   │
-             │ • Type Safety       │    │ • Breeding Logic    │
-             │ • Browser/Node.js   │    │ • Marketplace Logic │
-             └─────────────────────┘    └─────────────────────┘
+             ┌─────────────────────┐    ┌──────────────────────────────┐
+             │ Unified API         │◄──►│ Smart Contract               │
+             │ • Ledger Integration│    │ • Token Generation           │
+             │ • State Management  │    │ • Private State Update       │
+             │ • Type Safety       │    │ • Create sales               │
+             │ • Browser/Node.js   │    │ • Fund, refund & claim Logic │
+             └─────────────────────┘    └──────────────────────────────┘
                        │                          ▲
           ┌────────────────────────────┐          │
           │       Proof Server         │──────────┘
