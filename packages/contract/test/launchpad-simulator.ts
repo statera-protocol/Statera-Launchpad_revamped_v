@@ -4,26 +4,34 @@ import {
   sampleContractAddress,
   constructorContext,
   type CoinPublicKey,
+  EncodedCoinPublicKey,
 } from "@midnight-ntwrk/compact-runtime";
 import {
   Contract,
   type Ledger,
   ledger,
   CoinInfo,
+  Witnesses,
 } from "../src/managed/statera-launchpad/contract/index.cjs";
 import {
   type StateraLaunchpadPrivateState,
   witnesses,
 } from "../src/witnesses.js";
 import { toHex, fromHex, isHex } from "@midnight-ntwrk/midnight-js-utils";
-import { sampleCoinPublicKey, sampleTokenType } from "@midnight-ntwrk/zswap";
-import { createCoinInfo, encodeCoinInfo } from "@midnight-ntwrk/ledger";
+import { sampleTokenType } from "@midnight-ntwrk/zswap";
+import {
+  createCoinInfo,
+  decodeCoinPublicKey,
+  encodeCoinInfo,
+  encodeCoinPublicKey,
+} from "@midnight-ntwrk/ledger";
 import { TextEncoder } from "util";
 import { randomBytes } from "./utils.js";
 
 export class LaunchpadSimulator {
   readonly contract: Contract<StateraLaunchpadPrivateState>;
   public baseContext: CircuitContext<StateraLaunchpadPrivateState>;
+  public witnesses: Witnesses<StateraLaunchpadPrivateState>;
 
   constructor(privateState: StateraLaunchpadPrivateState) {
     this.contract = new Contract<StateraLaunchpadPrivateState>(witnesses);
@@ -33,9 +41,22 @@ export class LaunchpadSimulator {
       currentZswapLocalState,
     } = this.contract.initialState(
       constructorContext(privateState, this.createPublicKey("super-admin")),
-      { bytes: randomBytes(32) },
-      this.stringToBytes(sampleCoinPublicKey()).bytes
+      this.coinPubKeyToEncodedPubKey(this.createPublicKey("peter")),
+      randomBytes(32)
     );
+    const {
+      local_secret_key,
+      get_current_time,
+      calculate_total_allocation,
+      update_user_private_state,
+      confirm_sale_in_private_state,
+      get_user_private_state_hash,
+      remove_sale_from_private_state,
+      calculate_vest_claim_percentage_per_day,
+      calculate_total_vest_claim,
+      calculate_claim_amount,
+    } = this.contract.witnesses;
+
     this.baseContext = {
       currentPrivateState,
       currentZswapLocalState,
@@ -44,6 +65,19 @@ export class LaunchpadSimulator {
         currentContractState.data,
         sampleContractAddress()
       ),
+    };
+
+    this.witnesses = {
+      local_secret_key,
+      get_current_time,
+      calculate_total_allocation,
+      update_user_private_state,
+      confirm_sale_in_private_state,
+      get_user_private_state_hash,
+      remove_sale_from_private_state,
+      calculate_vest_claim_percentage_per_day,
+      calculate_total_vest_claim,
+      calculate_claim_amount,
     };
   }
 
@@ -73,7 +107,7 @@ export class LaunchpadSimulator {
   public joinAllowedList(userId: CoinPublicKey): void {
     const result = this.contract.impureCircuits.joinAllowedList(
       this.baseContext,
-      this.stringToBytes(userId).bytes
+      this.coinPubKeyToEncodedPubKey(userId).bytes
     );
     this.baseContext = result.context;
   }
@@ -124,6 +158,14 @@ export class LaunchpadSimulator {
     this.baseContext = result.context;
   }
 
+  public receiveFundsByOrganizer(saleId: number): void {
+    const result = this.contract.impureCircuits.receiveFundsRaised(
+      this.baseContext,
+      BigInt(saleId)
+    );
+    this.baseContext = result.context;
+  }
+
   public fundSale(coin: CoinInfo, sale_id: bigint): void {
     const result = this.contract.impureCircuits.fundSale(
       this.baseContext,
@@ -150,39 +192,28 @@ export class LaunchpadSimulator {
     this.baseContext = result.context;
   }
 
-  public createPublicKey(userName: string): CoinPublicKey {
-    const encoded = new TextEncoder().encode(userName);
+  public createPublicKey(str: string): CoinPublicKey {
+    const encoded = new TextEncoder().encode(str);
     const hexChars: string[] = [];
 
     for (let i = 0; i < 32; i++) {
       const byte =
         i < encoded.length
           ? encoded[i]
-          : (userName.charCodeAt(i % userName.length) + i) % 256;
+          : (str.charCodeAt(i % str.length) + i) % 256;
       hexChars.push(byte.toString(16).padStart(2, "0"));
     }
 
     return hexChars.join("") as CoinPublicKey;
   }
 
-  public stringToBytes(str: string): { bytes: Uint8Array } {
-    const encoded = new TextEncoder().encode(str);
-    const bytes = new Uint8Array(32);
-    bytes.set(encoded.slice(0, 32));
-    return { bytes };
+  public coinPubKeyToEncodedPubKey(str: CoinPublicKey): EncodedCoinPublicKey {
+    return { bytes: encodeCoinPublicKey(str) };
   }
 
-  public publicKeyToBytes(publicKey: CoinPublicKey): { bytes: Uint8Array } {
-    if (isHex(publicKey)) {
-      const bytes = fromHex(publicKey.padStart(64, "0"));
-      const result = new Uint8Array(32);
-      result.set(bytes.slice(0, 32));
-      return { bytes: result };
-    }
-    return this.stringToBytes(publicKey);
-  }
-
-  public bytesToPublicKey(bytesObj: { bytes: Uint8Array }): CoinPublicKey {
-    return toHex(bytesObj.bytes) as CoinPublicKey;
+  public encodedPubKeyToCoinPubKey(
+    encodePubKey: EncodedCoinPublicKey
+  ): CoinPublicKey {
+    return decodeCoinPublicKey(encodePubKey.bytes);
   }
 }

@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo run build",
     "start": "turbo run start --filter=@statera/ui",
+    "test": "turbo run vitest --filter=@statera/launchpad-contract",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",

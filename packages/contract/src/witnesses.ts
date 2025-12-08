@@ -6,7 +6,8 @@ import { WitnessContext } from "@midnight-ntwrk/compact-runtime";
 
 export type StateraLaunchpadPrivateState = {
   readonly secretKey: Uint8Array;
-  readonly saleMetadata: UserPrivateState[];
+  // sales metadata should be a readonly value - for testing sake, it will be mutable
+  saleMetadata: UserPrivateState[];
 };
 
 export const witnesses = {
@@ -54,21 +55,32 @@ export const witnesses = {
       return [privateState, allocation];
     }
   },
+  confirm_sale_in_private_state: (
+    { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,
+    saleId: bigint
+  ): [StateraLaunchpadPrivateState, boolean] => {
+    const saleData = privateState.saleMetadata.find(
+      (data) => data.saleId === saleId
+    );
+    const hasContributed: boolean = saleData === undefined ? false : true;
+    return [privateState, hasContributed];
+  },
   update_user_private_state: (
     { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,
     salePrivateData: UserPrivateState,
     saleId: bigint
   ): [StateraLaunchpadPrivateState, []] => {
-    const updatedPrivateState = {
-      ...privateState,
-      saleMetadata: [
-        ...privateState.saleMetadata.filter(
-          (saleData) => saleData.saleId !== saleId
-        ),
-        salePrivateData,
-      ],
-    };
-    return [updatedPrivateState, []];
+    const idx = privateState.saleMetadata.findIndex(
+      (data) => data.saleId === saleId
+    );
+    if (idx !== -1) {
+      privateState.saleMetadata[idx] = salePrivateData;
+      return [privateState, []];
+    } else {
+      const newIdx = privateState.saleMetadata.length;
+      privateState.saleMetadata[newIdx] = salePrivateData;
+      return [privateState, []];
+    }
   },
   get_user_private_state_hash: (
     { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,

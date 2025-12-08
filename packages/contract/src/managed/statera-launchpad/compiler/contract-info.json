@@ -406,6 +406,21 @@
       }
     },
     {
+      "name": "confirm_sale_in_private_state",
+      "arguments": [
+        {
+          "name": "saleId",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 4294967295
+          }
+        }
+      ],
+      "result type": {
+        "type-name": "Boolean"
+      }
+    },
+    {
       "name": "get_user_private_state_hash",
       "arguments": [
         {

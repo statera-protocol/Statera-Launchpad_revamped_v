@@ -48,6 +48,8 @@ export type Witnesses<T> = {
   update_user_private_state(context: __compactRuntime.WitnessContext<Ledger, T>,
                             new_private_state_0: UserPrivateState,
                             saleId_0: bigint): [T, []];
+  confirm_sale_in_private_state(context: __compactRuntime.WitnessContext<Ledger, T>,
+                                saleId_0: bigint): [T, boolean];
   get_user_private_state_hash(context: __compactRuntime.WitnessContext<Ledger, T>,
                               sale_id_0: bigint): [T, UserPrivateState];
   remove_sale_from_private_state(context: __compactRuntime.WitnessContext<Ledger, T>,

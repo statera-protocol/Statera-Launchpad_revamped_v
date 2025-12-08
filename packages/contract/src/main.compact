@@ -17,7 +17,7 @@ export { createSale, fundSale, claimTokens, SaleInfo, Sale, raisedTokenPool, sup
 constructor(address: ZswapCoinPublicKey, initialNonce: Bytes<32>) {
     nonce = disclose(initialNonce);
     uniqueIndex.increment(1);
-    receiverAddress = disclose(address);
+    organizerPubKey = disclose(address);
 }
 
 export circuit receiveSaleToken(coin: CoinInfo): [] {
