@@ -17,9 +17,7 @@ export type SaleInfo = { target: bigint;
                          exchangeRatio: bigint;
                          saleType: Sale;
                          slope: bigint;
-                         tgePeriod: bigint;
                          tgeAllocationPercentage: bigint;
-                         cliffPeriod: bigint;
                          vestingPeriod: bigint;
                          vestClaimPercentagePerDay: bigint
                        };
@@ -59,12 +57,12 @@ export type Witnesses<T> = {
                                           tge_allocation_percentage_0: bigint): [T, bigint];
   calculate_total_vest_claim(context: __compactRuntime.WitnessContext<Ledger, T>,
                              claim_per_day_percentage_0: bigint,
-                             cliff_period_0: bigint,
+                             end_time_0: bigint,
                              totalAllocation_0: bigint,
                              claimedAllocation_0: bigint): [T, bigint];
-  calculate_claim_amount(context: __compactRuntime.WitnessContext<Ledger, T>,
-                         percentage_0: bigint,
-                         total_allocation_0: bigint): [T, bigint];
+  calculate_deduction(context: __compactRuntime.WitnessContext<Ledger, T>,
+                      sale_id_0: bigint,
+                      refund_amount_0: bigint): [T, bigint];
 }
 
 export type ImpureCircuits<T> = {
@@ -83,8 +81,6 @@ export type ImpureCircuits<T> = {
              infoCID_0: Uint8Array,
              price_slope_0: bigint,
              isPrivate_0: boolean,
-             cliff_period_0: bigint,
-             tge_period_0: bigint,
              tge_allocation_percentage_0: bigint,
              vesting_duration_0: bigint): __compactRuntime.CircuitResults<T, []>;
   fundSale(context: __compactRuntime.CircuitContext<T>,
@@ -118,8 +114,6 @@ export type Circuits<T> = {
              infoCID_0: Uint8Array,
              price_slope_0: bigint,
              isPrivate_0: boolean,
-             cliff_period_0: bigint,
-             tge_period_0: bigint,
              tge_allocation_percentage_0: bigint,
              vesting_duration_0: bigint): __compactRuntime.CircuitResults<T, []>;
   fundSale(context: __compactRuntime.CircuitContext<T>,

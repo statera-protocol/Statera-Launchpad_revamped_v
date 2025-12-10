@@ -17,7 +17,6 @@ import {
   type StateraLaunchpadPrivateState,
   witnesses,
 } from "../src/witnesses.js";
-import { toHex, fromHex, isHex } from "@midnight-ntwrk/midnight-js-utils";
 import { sampleTokenType } from "@midnight-ntwrk/zswap";
 import {
   createCoinInfo,
@@ -31,9 +30,8 @@ import { randomBytes } from "./utils.js";
 export class LaunchpadSimulator {
   readonly contract: Contract<StateraLaunchpadPrivateState>;
   public baseContext: CircuitContext<StateraLaunchpadPrivateState>;
-  public witnesses: Witnesses<StateraLaunchpadPrivateState>;
 
-  constructor(privateState: StateraLaunchpadPrivateState) {
+  constructor(privateState: StateraLaunchpadPrivateState, organiser: string) {
     this.contract = new Contract<StateraLaunchpadPrivateState>(witnesses);
     const {
       currentPrivateState,
@@ -41,21 +39,9 @@ export class LaunchpadSimulator {
       currentZswapLocalState,
     } = this.contract.initialState(
       constructorContext(privateState, this.createPublicKey("super-admin")),
-      this.coinPubKeyToEncodedPubKey(this.createPublicKey("peter")),
+      this.coinPubKeyToEncodedPubKey(this.createPublicKey(organiser)),
       randomBytes(32)
     );
-    const {
-      local_secret_key,
-      get_current_time,
-      calculate_total_allocation,
-      update_user_private_state,
-      confirm_sale_in_private_state,
-      get_user_private_state_hash,
-      remove_sale_from_private_state,
-      calculate_vest_claim_percentage_per_day,
-      calculate_total_vest_claim,
-      calculate_claim_amount,
-    } = this.contract.witnesses;
 
     this.baseContext = {
       currentPrivateState,
@@ -65,19 +51,6 @@ export class LaunchpadSimulator {
         currentContractState.data,
         sampleContractAddress()
       ),
-    };
-
-    this.witnesses = {
-      local_secret_key,
-      get_current_time,
-      calculate_total_allocation,
-      update_user_private_state,
-      confirm_sale_in_private_state,
-      get_user_private_state_hash,
-      remove_sale_from_private_state,
-      calculate_vest_claim_percentage_per_day,
-      calculate_total_vest_claim,
-      calculate_claim_amount,
     };
   }
 
@@ -122,8 +95,6 @@ export class LaunchpadSimulator {
     infoCID: Uint8Array,
     price_slope: bigint,
     isPrivate: boolean,
-    cliff_period: bigint,
-    tge_period: bigint,
     tge_allocation_percentage: bigint,
     vesting_duration: bigint
   ): void {
@@ -137,8 +108,6 @@ export class LaunchpadSimulator {
       infoCID,
       price_slope,
       isPrivate,
-      cliff_period,
-      tge_period,
       tge_allocation_percentage,
       vesting_duration,
     ] as const;

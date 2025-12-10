@@ -38,9 +38,7 @@ module VariablesAndTypes {
         exchangeRatio: Uint<64>;
         saleType: Sale;
         slope: Uint<32>;
-        tgePeriod: Uint<64>;
         tgeAllocationPercentage: Uint<8>;
-        cliffPeriod: Uint<64>;
         vestingPeriod: Uint<64>;
         vestClaimPercentagePerDay: Uint<8>;
     };
@@ -67,6 +65,7 @@ module VariablesAndTypes {
     export witness get_user_private_state_hash(sale_id: Uint<32>) :UserPrivateState;
     export witness remove_sale_from_private_state(sale_id: Uint<32>) :[];
     export witness calculate_vest_claim_percentage_per_day(vesting_duration: Uint<64>, tge_allocation_percentage: Uint<8>):Uint<8>;
-    export witness calculate_total_vest_claim(claim_per_day_percentage: Uint<8>, cliff_period: Uint<64>, totalAllocation: Uint<64>, claimedAllocation: Uint<64>): Uint<64>;
+    export witness calculate_total_vest_claim(claim_per_day_percentage: Uint<8>, end_time: Uint<64>, totalAllocation: Uint<64>, claimedAllocation: Uint<64>): Uint<64>;
     export witness calculate_claim_amount(percentage: Uint<8>, total_allocation: Uint<64>): Uint<64>;
+    export witness calculate_deduction(sale_id: Uint<32>, refund_amount: Uint<64>): Uint<64>;
 }

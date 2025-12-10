@@ -110,20 +110,6 @@
           }
         },
         {
-          "name": "cliff_period",
-          "type": {
-            "type-name": "Uint",
-            "maxval": 18446744073709551615
-          }
-        },
-        {
-          "name": "tge_period",
-          "type": {
-            "type-name": "Uint",
-            "maxval": 18446744073709551615
-          }
-        },
-        {
           "name": "tge_allocation_percentage",
           "type": {
             "type-name": "Uint",
@@ -517,7 +503,7 @@
           }
         },
         {
-          "name": "cliff_period",
+          "name": "end_time",
           "type": {
             "type-name": "Uint",
             "maxval": 18446744073709551615
@@ -544,17 +530,17 @@
       }
     },
     {
-      "name": "calculate_claim_amount",
+      "name": "calculate_deduction",
       "arguments": [
         {
-          "name": "percentage",
+          "name": "sale_id",
           "type": {
             "type-name": "Uint",
-            "maxval": 255
+            "maxval": 4294967295
           }
         },
         {
-          "name": "total_allocation",
+          "name": "refund_amount",
           "type": {
             "type-name": "Uint",
             "maxval": 18446744073709551615

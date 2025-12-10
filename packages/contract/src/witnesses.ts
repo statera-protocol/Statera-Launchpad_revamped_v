@@ -105,6 +105,22 @@ export const witnesses = {
     };
     return [updatedPrivateState, []];
   },
+  calculate_deduction: (
+    { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,
+    sale_id: bigint,
+    refund_amount: bigint
+  ): [StateraLaunchpadPrivateState, bigint] => {
+    const sale = privateState.saleMetadata.find(
+      (sale) => sale.saleId === sale_id
+    );
+    if (refund_amount !== 0n) {
+      const price = sale!.contribution / sale!.totalAllocation;
+      const allocation_deduction = refund_amount / price;
+      return [privateState, allocation_deduction];
+    } else {
+      return [privateState, 0n];
+    }
+  },
   calculate_vest_claim_percentage_per_day: (
     { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,
     vesting_duration: bigint,
@@ -123,13 +139,13 @@ export const witnesses = {
   calculate_total_vest_claim: (
     { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,
     claim_per_day_percentage: bigint,
-    cliff_period: bigint,
+    end_time: bigint,
     total_allocation: bigint,
     claimed_amount: bigint
   ): [StateraLaunchpadPrivateState, bigint] => {
     const time_now = BigInt(Date.now());
     const milliseconds_a_day = BigInt(1000 * 60 * 60 * 24);
-    const vestDays = (time_now - cliff_period) / milliseconds_a_day;
+    const vestDays = (time_now - end_time) / milliseconds_a_day;
     const percentage = claim_per_day_percentage * vestDays;
     const totalVestedAmount = (percentage * total_allocation) / 100n;
 
