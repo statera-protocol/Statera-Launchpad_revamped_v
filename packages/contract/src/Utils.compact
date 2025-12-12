@@ -30,5 +30,15 @@ module Utils {
         assert(!allowedUser.member(disclose(userId)), "User already exist");
         allowedUser.insert(disclose(userId));
     }
-    
+    export circuit calcClaimAllocation(saleInfo: SaleInfo, privateState: UserPrivateState): Uint<64> {
+        if (saleInfo.saleModel == Model.Overflow) {
+            if (saleInfo.target < saleInfo.totalTokenSold) {
+                
+            } else {
+                return saleInfo.vestClaimPercentagePerDay == 100 ? privateState.totalAllocation : disclose(calculate_total_vest_claim(saleInfo.vestClaimPercentagePerDay, saleInfo.endTime, privateState.totalAllocation, privateState.claimedAllocation));
+            }
+        } else {
+            return saleInfo.vestClaimPercentagePerDay == 100 ? privateState.totalAllocation : disclose(calculate_total_vest_claim(saleInfo.vestClaimPercentagePerDay, saleInfo.endTime, privateState.totalAllocation, privateState.claimedAllocation));
+        }
+    }
 }

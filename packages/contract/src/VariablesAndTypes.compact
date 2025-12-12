@@ -2,7 +2,7 @@ module VariablesAndTypes {
     import CompactStandardLibrary;
 
     /** Exports the types and ledger variables **/
-    export { SaleInfo, raisedTokenPool, superAdmin, contractSalesInfo, TVL, Sale, organizerPubKey, uniqueIndex, nonce, allowedUser, UserPrivateState, FundingInfo, fundingInfo, SCALE_FACTOR, TokenSold, saleId, SalePhase };
+    export { SaleInfo, raisedTokenPool, superAdmin, contractSalesInfo, TVL, Sale, organizerPubKey, uniqueIndex, nonce, allowedUser, UserPrivateState, FundingInfo, fundingInfo, SCALE_FACTOR, TokenSold, saleId, SalePhase, Model };
 
     /** Once contract is deployed, the contract receives a specified amount of token which will be minted on the token contract provided by the organizers **/
     ledger TVL: QualifiedCoinInfo; /** Holds token to be disbursed to investors - We expect that there would be token in the TVL before sale is being created **/
@@ -19,6 +19,8 @@ module VariablesAndTypes {
     ledger nonce: Bytes<32>;
 
     enum Sale { Public, Private };
+    
+    enum Model { Fixed, Overflow };
 
     enum SalePhase { Live, Cancelled, Ended };
 
@@ -37,7 +39,9 @@ module VariablesAndTypes {
         participants: Uint<16>;
         organizer: Bytes<32>;
         hasWithdrawn: Boolean;
+        hasEnded: Boolean;
         exchangeRatio: Uint<64>;
+        saleModel: Model;
         saleType: Sale;
         slope: Uint<32>;
         tgeAllocationPercentage: Uint<8>;

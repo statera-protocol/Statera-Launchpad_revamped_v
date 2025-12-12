@@ -55,6 +55,16 @@ export const witnesses = {
       return [privateState, allocation];
     }
   },
+  calculate_overflow_total_allocation: (
+    { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,
+    contribution: bigint,
+    total_contribution: bigint,
+    total_token_sold: bigint
+  ): [StateraLaunchpadPrivateState, bigint] => {
+      const percentage = (contribution / total_contribution) * 100n;
+      const allocation = total_token_sold / percentage
+      return [privateState, allocation];
+  },
   confirm_sale_in_private_state: (
     { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,
     saleId: bigint

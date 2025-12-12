@@ -122,6 +122,12 @@
             "type-name": "Uint",
             "maxval": 18446744073709551615
           }
+        },
+        {
+          "name": "is_overflow",
+          "type": {
+            "type-name": "Boolean"
+          }
         }
       ],
       "result-type": {

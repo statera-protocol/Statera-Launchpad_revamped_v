@@ -44,7 +44,8 @@ describe("Contract test user activities on public sale", () => {
       1n, // influences the price, if it is a dynamic price sale
       false, // is sale private?
       100n, // the percentage that should be withdrawn at TGE
-      0n // vesting period
+      0n ,// vesting period
+      false
     );
 
     expect(simulator_public_sale.getLedger().contractSalesInfo.size()).toBe(1n);
@@ -242,7 +243,8 @@ describe("Contract test user activity on private sale", () => {
       0n, // influences the price, if it is a dynamic price sale
       true, // is sale private?
       10n, // the percentage that should be withdrawn at TGE
-      daysToMilliseconds(0) // vesting period
+      daysToMilliseconds(0), // vesting period
+      false
     );
 
     expect(simulator_private.getLedger().contractSalesInfo.size()).toBe(1n);
@@ -341,7 +343,6 @@ describe("Contract test user activity on private sale", () => {
     expect(simulator_private.getLedger().TVL.value).toBe(
       9915n * simulator_private.scaleFactor()
     );
-    // simulator_public_sale.claimTokens(1n);
   });
 
   it("should allow organisers cancel sale", () => {
@@ -410,7 +411,8 @@ describe("Contract test for sale with vesting period", () => {
       0n, // influences the price, if it is a dynamic price sale
       false, // is sale private?
       10n, // the percentage that should be withdrawn at TGE
-      daysToMilliseconds(4) // vesting period
+      daysToMilliseconds(4), // vesting period
+      false,
     );
 
     expect(simulator_with_vest.getLedger().contractSalesInfo.size()).toBe(1n);
@@ -423,7 +425,7 @@ describe("Contract test for sale with vesting period", () => {
     simulator_with_vest.baseContext.currentZswapLocalState.coinPublicKey =
       simulator_with_vest.coinPubKeyToEncodedPubKey(mary);
 
-    simulator_with_vest.fundSale(simulator_with_vest.coin(1000), 1n);
+    simulator_with_vest.fundSale(simulator_with_vest.coin(760.7), 1n);
   });
 
   it("should allow participants claim their allocated tokens", () => {
@@ -444,6 +446,5 @@ describe("Contract test for sale with vesting period", () => {
     expect(simulator_with_vest.getLedger().TVL.value).toBe(
       15000n * simulator_with_vest.scaleFactor()
     );
-    // simulator_public_sale.claimTokens(1n);
   });
 });

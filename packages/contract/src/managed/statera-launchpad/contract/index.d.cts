@@ -14,7 +14,9 @@ export type SaleInfo = { target: bigint;
                          participants: bigint;
                          organizer: Uint8Array;
                          hasWithdrawn: boolean;
+                         hasEnded: boolean;
                          exchangeRatio: bigint;
+                         saleModel: number;
                          saleType: Sale;
                          slope: bigint;
                          tgeAllocationPercentage: bigint;
@@ -82,7 +84,8 @@ export type ImpureCircuits<T> = {
              price_slope_0: bigint,
              isPrivate_0: boolean,
              tge_allocation_percentage_0: bigint,
-             vesting_duration_0: bigint): __compactRuntime.CircuitResults<T, []>;
+             vesting_duration_0: bigint,
+             is_overflow_0: boolean): __compactRuntime.CircuitResults<T, []>;
   fundSale(context: __compactRuntime.CircuitContext<T>,
            coin_0: CoinInfo,
            sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
@@ -116,7 +119,8 @@ export type Circuits<T> = {
              price_slope_0: bigint,
              isPrivate_0: boolean,
              tge_allocation_percentage_0: bigint,
-             vesting_duration_0: bigint): __compactRuntime.CircuitResults<T, []>;
+             vesting_duration_0: bigint,
+             is_overflow_0: boolean): __compactRuntime.CircuitResults<T, []>;
   fundSale(context: __compactRuntime.CircuitContext<T>,
            coin_0: CoinInfo,
            sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;

@@ -64,7 +64,7 @@ export class LaunchpadSimulator {
 
   public coin(amount: number): CoinInfo {
     return encodeCoinInfo(
-      createCoinInfo(this.coinType, this.scaleFactor() * BigInt(amount))
+      createCoinInfo(this.coinType, BigInt(Number(this.scaleFactor()) * amount))
     );
   }
 
@@ -102,7 +102,8 @@ export class LaunchpadSimulator {
     price_slope: bigint,
     isPrivate: boolean,
     tge_allocation_percentage: bigint,
-    vesting_duration: bigint
+    vesting_duration: bigint,
+    is_overflow: boolean
   ): void {
     const saleData = [
       start_price,
@@ -116,6 +117,7 @@ export class LaunchpadSimulator {
       isPrivate,
       tge_allocation_percentage,
       vesting_duration,
+      is_overflow
     ] as const;
 
     const result = this.contract.impureCircuits.createSale(

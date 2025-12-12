@@ -16,7 +16,8 @@ module SalesManager {
         price_slope: Uint<32>, 
         isPrivate: Boolean, 
         tge_allocation_percentage: Uint<8>,
-        vesting_duration: Uint<64> 
+        vesting_duration: Uint<64>,
+        is_overflow: Boolean,
     ) :[] {
         assert(disclose(start_price) > 0, "Sale ratio must be greater than 0!");
         assert(disclose(total_amount) > 0 && disclose(total_amount) <= TVL.value, "Sale amount must be greater than 0!");
@@ -45,7 +46,9 @@ module SalesManager {
             participants: 0,
             organizer: default<Bytes<32>>, 
             hasWithdrawn: false, 
+            hasEnded: false,
             exchangeRatio: disclose(start_price), 
+            saleModel: disclose(is_overflow) ? Model.Overflow : Model.Fixed,
             saleType: disclose(isPrivate) ?  Sale.Private : Sale.Public,
             slope: disclose(price_slope), 
             tgeAllocationPercentage: disclose(tge_allocation_percentage),
@@ -65,12 +68,14 @@ module SalesManager {
         const saleInfo = contractSalesInfo.lookup(disclosedSaleId);
         const current_time = disclose(get_current_time());
         assert(saleInfo.startTime < current_time, "Sale is yet to begin");
+        assert(saleInfo.endTime > current_time, "Sale has ended");
+        saleInfo.saleModel != Model.Overflow && assert(saleInfo.amountRaised <= saleInfo.target, "Sale target has already been achieved");
         
         saleInfo.saleType == Sale.Private && assert(allowedUser.member(userPk), "You are not eligible for this sale");
         assert(saleInfo.phase == SalePhase.Live, "This sale has either been cancelled or ended");
         assert(saleInfo.acceptableExchangeToken == disclosedCoin.color, "Please provided the acceptable token");
-        assert(disclosedCoinAmount <= saleInfo.max && disclosedCoinAmount >= saleInfo.min, "Amount entered breaches did not fall within threshold");
-        assert(saleInfo.amountRaised < saleInfo.target, "Sale target has already been achieved");
+        assert(disclosedCoinAmount >= saleInfo.min, "Amount is lower than the minimum buy");
+        assert(disclosedCoinAmount <= saleInfo.max, "Amount is greater than the maximum buy");
 
         recieveFund(disclosedCoin);
         const allocation = disclose(calculate_total_allocation(saleInfo.exchangeRatio, saleInfo.slope, disclosedCoinAmount, saleInfo.totalTokenSold));
@@ -119,10 +124,13 @@ module SalesManager {
 
             contractSalesInfo.insert(disclosedSaleId, SaleInfo {
                 ...saleInfo,
-                phase: current_time > saleInfo.endTime ? SalePhase.Ended : SalePhase.Live,
                 participants: (saleInfo.participants + 1) as Uint<16>,
                 amountRaised: disclosedCoinAmount + saleInfo.amountRaised as Uint<64>,
                 totalTokenSold: allocation + saleInfo.totalTokenSold as Uint<64>,
+                phase: saleInfo.saleModel == Model.Overflow ?
+                    saleInfo.endTime < current_time ? SalePhase.Ended : SalePhase.Live
+                    :
+                    saleInfo.amountRaised <= saleInfo.target || saleInfo.endTime < current_time ? SalePhase.Ended : SalePhase.Live
             });
         }
     }
@@ -133,7 +141,7 @@ module SalesManager {
         const userPk = ownPublicKey().bytes;
         assert(contractSalesInfo.member(disclosedSaleId), "Sale does not exist");
         const saleInfo = contractSalesInfo.lookup(disclosedSaleId);
-        // assert(saleInfo.hasEnded, "Can't claim token until sale is over");
+        assert(saleInfo.phase != SalePhase.Live, "Can't claim token until sale is over");
 
         const funderPk = public_key(disclose(local_secret_key()));
         assert(fundingInfo.member(funderPk), "You did not participate in this sale");
@@ -143,8 +151,6 @@ module SalesManager {
         const funderPrivateStateHash = generatePrivateStateHash(funderPrivateState, userPk);
         assert(funderPrivateStateHash == funderOnchainInfo.privateStateHash, "Private state and onchain state mismatch");
         assert(funderOnchainInfo.claimComplete == false, "you have already claimed your token");
-        
-        const current_time = disclose(get_current_time());
 
         const vestClaimAmount = saleInfo.vestClaimPercentagePerDay == 100 ? funderPrivateState.totalAllocation : disclose(calculate_total_vest_claim(saleInfo.vestClaimPercentagePerDay, saleInfo.endTime, funderPrivateState.totalAllocation, funderPrivateState.claimedAllocation));
         assert(vestClaimAmount > 0, "No tokens available to claim at this time");
@@ -278,9 +284,5 @@ module SalesManager {
             ...saleInfo,
             phase: SalePhase.Cancelled,
         });
-        
-
     }
-    
-
 }
