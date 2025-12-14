@@ -3,57 +3,63 @@ module SalesManager {
     import VariablesAndTypes;
     import Utils;
 
-    export { createSale, fundSale, claimTokens, refund, receiveFundsRaised, cancelSale };
+    export { createSale, fundSale, claimTokens, refund, receiveFundsRaised, cancelSale, joinAllowedList };
 
     circuit createSale(
-        start_price: Uint<64>, 
-        total_amount: Uint<64>,
+        price: Uint<64>, 
+        total_amount_to_sell: Uint<64>,
         exchange_token: Bytes<32>, 
-        end_time: Uint<64>, 
-        min: Uint<64>, 
-        max: Uint<64>, 
+        sale_end_time: Uint<64>, 
+        min_contribtion: Uint<64>, 
+        max_contribtion: Uint<64>, 
         infoCID: Bytes<32>, 
         price_slope: Uint<32>, 
-        isPrivate: Boolean, 
         tge_allocation_percentage: Uint<8>,
         vesting_duration: Uint<64>,
+        cliff_period: Uint<64>,
         is_overflow: Boolean,
-    ) :[] {
-        assert(disclose(start_price) > 0, "Sale ratio must be greater than 0!");
-        assert(disclose(total_amount) > 0 && disclose(total_amount) <= TVL.value, "Sale amount must be greater than 0!");
+        is_private: Boolean,
+        organiser: ZswapCoinPublicKey,
+        scale_factor: Uint<64>
+    ):[] {
+        assert(ownPublicKey().bytes == superAdmin || admins.member(ownPublicKey().bytes), "Only the admins can create sale");
+        assert(disclose(price) > 0, "Sale ratio must be greater than 0!");
+        assert(disclose(total_amount_to_sell) > 0 && disclose(total_amount_to_sell) <= TVL.value, "Sale amount must be greater than 0!");
         const leftOver = TVL.value == TokenSold || TVL.value < TokenSold ? 0 : TVL.value - TokenSold;
-        assert(leftOver >= disclose(total_amount), "No enough token to create another sale");
-        const organizer = public_key(disclose(local_secret_key()));
+        assert(leftOver >= disclose(total_amount_to_sell), "No enough token to create another sale");
+
         saleId.increment(1);
 
         const current_time = disclose(get_current_time());
-        
         const claimPercentage = disclose(vesting_duration) == 0 ? 100 : disclose(calculate_vest_claim_percentage_per_day(disclose(vesting_duration), disclose(tge_allocation_percentage)));
+        organizersPubKey.insert(saleId, disclose(organiser));
 
-        TokenSold = disclose(total_amount) + TokenSold as Uint<64>;
+        TokenSold = disclose(total_amount_to_sell) + TokenSold as Uint<64>;
         contractSalesInfo.insert(saleId, SaleInfo {
-            target: disclose(total_amount) * disclose(start_price) as Uint<64>, 
+            target: disclose(calculate_target(disclose(total_amount_to_sell), disclose(price), disclose(scale_factor))),
             startTime: disclose(current_time),
-            endTime: disclose(end_time),
-            totalTokenAmount: disclose(total_amount),
+            endTime: disclose(sale_end_time),
+            totalTokenAmount: disclose(total_amount_to_sell),
             totalTokenSold: 0,
             saleInfoCID: disclose(infoCID),
             amountRaised: 0,
             acceptableExchangeToken: disclose(exchange_token),
             phase: SalePhase.Live,
-            min: disclose(min),
-            max: disclose(max),
+            min: disclose(min_contribtion),
+            max: disclose(max_contribtion),
             participants: 0,
-            organizer: default<Bytes<32>>, 
+            organizer: disclose(organiser), 
             hasWithdrawn: false, 
             hasEnded: false,
-            exchangeRatio: disclose(start_price), 
+            exchangeRatio: disclose(price), 
             saleModel: disclose(is_overflow) ? Model.Overflow : Model.Fixed,
-            saleType: disclose(isPrivate) ?  Sale.Private : Sale.Public,
+            saleType: disclose(is_private) ? Sale.Private : Sale.Public,
             slope: disclose(price_slope), 
             tgeAllocationPercentage: disclose(tge_allocation_percentage),
             vestingPeriod: disclose(vesting_duration),
-            vestClaimPercentagePerDay: claimPercentage
+            cliffPeriod: disclose(cliff_period),
+            vestClaimPercentagePerDay: claimPercentage,
+            scaleFactor: disclose(scale_factor)
         });
     }
 
@@ -62,97 +68,77 @@ module SalesManager {
         const disclosedCoinAmount = disclosedCoin.value;
         const disclosedSaleId = disclose(sale_id);
         assert(contractSalesInfo.member(disclosedSaleId), "This sale doesn't exist");
-        
         const userPk = ownPublicKey().bytes; 
-        const funder = public_key(disclose(local_secret_key()));
         const saleInfo = contractSalesInfo.lookup(disclosedSaleId);
         const current_time = disclose(get_current_time());
         assert(saleInfo.startTime < current_time, "Sale is yet to begin");
+
+        (saleInfo.endTime < current_time && saleInfo.totalTokenSold < saleInfo.target && saleInfo.phase != SalePhase.Cancelled)
+            && contractSalesInfo.insert(disclosedSaleId, SaleInfo {
+                ...saleInfo,
+                phase: SalePhase.Cancelled
+            });
+
         assert(saleInfo.endTime > current_time, "Sale has ended");
-        saleInfo.saleModel != Model.Overflow && assert(saleInfo.amountRaised <= saleInfo.target, "Sale target has already been achieved");
-        
-        saleInfo.saleType == Sale.Private && assert(allowedUser.member(userPk), "You are not eligible for this sale");
+        assert(allowedUser.member(userPk) || saleInfo.saleType == Sale.Public, "You are not eligible for this sale");
         assert(saleInfo.phase == SalePhase.Live, "This sale has either been cancelled or ended");
         assert(saleInfo.acceptableExchangeToken == disclosedCoin.color, "Please provided the acceptable token");
         assert(disclosedCoinAmount >= saleInfo.min, "Amount is lower than the minimum buy");
         assert(disclosedCoinAmount <= saleInfo.max, "Amount is greater than the maximum buy");
 
-        recieveFund(disclosedCoin);
-        const allocation = disclose(calculate_total_allocation(saleInfo.exchangeRatio, saleInfo.slope, disclosedCoinAmount, saleInfo.totalTokenSold));
+        saleInfo.saleModel == Model.Fixed && assert(saleInfo.amountRaised <= saleInfo.target, "Sale target has already been achieved");
+        updateState(disclosedSaleId, saleInfo, disclosedCoinAmount, userPk, current_time);
 
-        const hasContributedBefore = disclose(confirm_sale_in_private_state(disclosedSaleId));
-        if (hasContributedBefore) {
-            const funderPrivateState = disclose(get_user_private_state_hash(disclosedSaleId));
-                
-            const updatedPrivateState = UserPrivateState {
-                ...funderPrivateState,
-                contribution: funderPrivateState.contribution + disclosedCoinAmount as Uint<64>,
-                totalAllocation: funderPrivateState.totalAllocation + allocation as Uint<64>
-            };
+        recieveFund(disclosedCoin, disclosedSaleId);
+    }
 
-            update_user_private_state(updatedPrivateState, disclosedSaleId);
+    circuit refund(sale_id: Uint<32>): [] {
+        const disclosedSaleId = disclose(sale_id);
+        const userPk = ownPublicKey().bytes;
+        assert(contractSalesInfo.member(disclosedSaleId), "Sale does not exist");
+        const saleInfo = contractSalesInfo.lookup(disclosedSaleId);
+        assert(saleInfo.phase == SalePhase.Cancelled, "Sale is on  can't apply for a refund");
 
-            const userPrivateStateHash = generatePrivateStateHash(updatedPrivateState, userPk);
+        const funder = public_key(disclose(local_secret_key()));
+        
+        const hasContributed = disclose(confirm_sale_in_private_state(disclosedSaleId));
+        assert(hasContributed, "You didn't participate in this sale");
+        assert(fundingInfo.member(funder), "Data not found onchain");
+        const funderOnchainInfo = fundingInfo.lookup(funder);
+        
+        const funderPrivateState = disclose(get_user_private_state_hash(disclosedSaleId));
+        const funderPrivateStateHash = generatePrivateStateHash(funderPrivateState, userPk);
+        assert(funderPrivateStateHash == funderOnchainInfo.privateStateHash, "Private state and onchain state mismatch");
 
-            fundingInfo.insert(funder, FundingInfo {
-                privateStateHash: userPrivateStateHash,
-                claimComplete: false
-            });
-            
-            contractSalesInfo.insert(disclosedSaleId, SaleInfo {
-                ...saleInfo,
-                phase: current_time > saleInfo.endTime ? SalePhase.Ended : SalePhase.Live,
-                amountRaised: disclosedCoinAmount + saleInfo.amountRaised as Uint<64>,
-                totalTokenSold: allocation + saleInfo.totalTokenSold as Uint<64>,
-            });
-        } else {
-            const newPrivateState = UserPrivateState {
-                saleId: disclosedSaleId,
-                contribution: disclosedCoinAmount,
-                totalAllocation: allocation,
-                claimedAllocation: 0
-            };
+        const userPrivateState = disclose(get_user_private_state_hash(disclosedSaleId));
+        remove_sale_from_private_state(disclosedSaleId);
+        fundingInfo.remove(funder);
 
-            update_user_private_state(newPrivateState, disclosedSaleId);
+        const pool = raisedTokenPools.lookup(disclosedSaleId);
+        const sendResult = send(pool, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()), userPrivateState.contribution);
 
-            const userPrivateStateHash = generatePrivateStateHash(newPrivateState, userPk);
-
-            fundingInfo.insert(funder, FundingInfo {
-                privateStateHash: userPrivateStateHash,
-                claimComplete: false
-            });
-
-            contractSalesInfo.insert(disclosedSaleId, SaleInfo {
-                ...saleInfo,
-                participants: (saleInfo.participants + 1) as Uint<16>,
-                amountRaised: disclosedCoinAmount + saleInfo.amountRaised as Uint<64>,
-                totalTokenSold: allocation + saleInfo.totalTokenSold as Uint<64>,
-                phase: saleInfo.saleModel == Model.Overflow ?
-                    saleInfo.endTime < current_time ? SalePhase.Ended : SalePhase.Live
-                    :
-                    saleInfo.amountRaised <= saleInfo.target || saleInfo.endTime < current_time ? SalePhase.Ended : SalePhase.Live
-            });
-        }
+        sendResult.change.is_some ? raisedTokenPools.insertCoin(disclosedSaleId, sendResult.change.value, right<ZswapCoinPublicKey, ContractAddress>(kernel.self())) : raisedTokenPools.remove(disclosedSaleId);
     }
     
     circuit claimTokens(sale_id: Uint<32>):[] {
         const disclosedSaleId = disclose(sale_id);
-        
-        const userPk = ownPublicKey().bytes;
         assert(contractSalesInfo.member(disclosedSaleId), "Sale does not exist");
         const saleInfo = contractSalesInfo.lookup(disclosedSaleId);
-        assert(saleInfo.phase != SalePhase.Live, "Can't claim token until sale is over");
+        assert(saleInfo.phase == SalePhase.Ended, "Can't claim from a live or cancelled sale");
 
         const funderPk = public_key(disclose(local_secret_key()));
         assert(fundingInfo.member(funderPk), "You did not participate in this sale");
         const funderOnchainInfo = fundingInfo.lookup(funderPk);
         
+        const userPk = ownPublicKey().bytes;
         const funderPrivateState = disclose(get_user_private_state_hash(disclosedSaleId));
         const funderPrivateStateHash = generatePrivateStateHash(funderPrivateState, userPk);
         assert(funderPrivateStateHash == funderOnchainInfo.privateStateHash, "Private state and onchain state mismatch");
         assert(funderOnchainInfo.claimComplete == false, "you have already claimed your token");
 
-        const vestClaimAmount = saleInfo.vestClaimPercentagePerDay == 100 ? funderPrivateState.totalAllocation : disclose(calculate_total_vest_claim(saleInfo.vestClaimPercentagePerDay, saleInfo.endTime, funderPrivateState.totalAllocation, funderPrivateState.claimedAllocation));
+        const allocation = saleInfo.saleModel == Model.Overflow ? disclose(recalculateAllocationAndUpdatePrivateState(disclosedSaleId, funderPrivateState.contribution, saleInfo.amountRaised, saleInfo.totalTokenSold)) : funderPrivateState.totalAllocation;
+
+        const vestClaimAmount = saleInfo.vestClaimPercentagePerDay == 100 ? allocation : disclose(calculate_total_vest_claim(saleInfo.vestClaimPercentagePerDay, saleInfo.endTime, allocation, funderPrivateState.claimedAllocation));
         assert(vestClaimAmount > 0, "No tokens available to claim at this time");
 
         const sendResult = send(TVL, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()), vestClaimAmount);
@@ -179,92 +165,28 @@ module SalesManager {
         });
     }
 
-    export circuit refund(sale_id: Uint<32>, refundAmount: Uint<64>): [] {
-        const disclosedSaleId = disclose(sale_id);
-        const disclosedRefundAmount = disclose(refundAmount);
-        const userPk = ownPublicKey().bytes;
-        assert(contractSalesInfo.member(disclosedSaleId), "Sale does not exist");
-        const saleInfo = contractSalesInfo.lookup(disclosedSaleId);
-        assert(saleInfo.phase == SalePhase.Live, "Sale is over can't apply for a refund");
-
-        const funder = public_key(disclose(local_secret_key()));
-        
-        const hasContributed = disclose(confirm_sale_in_private_state(disclosedSaleId));
-        assert(hasContributed, "You didn't participate in this sale");
-        assert(fundingInfo.member(funder), "Data not found onchain");
-        const funderOnchainInfo = fundingInfo.lookup(funder);
-        
-        const funderPrivateState = disclose(get_user_private_state_hash(disclosedSaleId));
-        const funderPrivateStateHash = generatePrivateStateHash(funderPrivateState, userPk);
-        // assert(funderPrivateStateHash == funderOnchainInfo.privateStateHash, "Private state and onchain state mismatch");
-        assert(funderPrivateState.contribution >= disclosedRefundAmount, "Refund amount can not be greater than contribution");
-
-        const deduct = disclose(calculate_deduction(disclosedSaleId, disclosedRefundAmount));
-
-        if (funderPrivateState.contribution == disclosedRefundAmount) {
-            remove_sale_from_private_state(disclosedSaleId);
-            fundingInfo.remove(funder);
-
-            contractSalesInfo.insert(disclosedSaleId, SaleInfo {
-                ...saleInfo,
-                participants: (saleInfo.participants - 1),
-            });
-
-        } else {
-            const newPrivateState = UserPrivateState {
-                ...funderPrivateState,
-                contribution: funderPrivateState.contribution - disclosedRefundAmount,
-                totalAllocation: funderPrivateState.totalAllocation - deduct,
-            };
-            update_user_private_state(newPrivateState, disclosedSaleId);
-    
-            const userPrivateStateHash = generatePrivateStateHash(newPrivateState, userPk); 
-        
-            fundingInfo.insert(funder, FundingInfo {
-                privateStateHash: userPrivateStateHash,
-                claimComplete: false
-            });
-        }
-        
-        contractSalesInfo.insert(disclosedSaleId, SaleInfo {
-            ...saleInfo,
-            amountRaised: saleInfo.amountRaised - disclosedRefundAmount,
-            totalTokenSold: saleInfo.totalTokenSold - deduct
-        });
-
-        const sendResult = send(raisedTokenPool, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()), disclosedRefundAmount);
-
-        if(sendResult.change.is_some){
-            raisedTokenPool.writeCoin(
-                sendResult.change.value,
-                right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
-            );
-        } else {
-            raisedTokenPool.resetToDefault();
-        }
-    }
-
-    export circuit receiveFundsRaised(sale_id: Uint<32>) :[] {
+    circuit receiveFundsRaised(sale_id: Uint<32>) :[] {
         const disclosedSaleId = disclose(sale_id);
         assert(contractSalesInfo.member(disclosedSaleId), "Sale does not exist");  
         const saleInfo = contractSalesInfo.lookup(disclosedSaleId);
         assert(saleInfo.phase != SalePhase.Live, "Sale is still live - can't withdraw");
         assert(!saleInfo.hasWithdrawn, "Funds has been withdrawn from this sale");
-        assert(raisedTokenPool.value > 0, "No tokens left in this pool");
-        assert(saleInfo.amountRaised > 0, "No token raised from this sale");
+        const pool = raisedTokenPools.lookup(disclosedSaleId);
+        assert(pool.value > 0, "No token raised from this sale");
         const userPk = ownPublicKey().bytes; 
-        assert(userPk == organizerPubKey.bytes, "You are not the organizer");
+        const organizerPk = organizersPubKey.lookup(disclosedSaleId);
+        assert(organizerPk.bytes == ownPublicKey().bytes, "You are not the organizer");
 
-        const sendResult = send(raisedTokenPool, left<ZswapCoinPublicKey, ContractAddress>(organizerPubKey), saleInfo.amountRaised);
+        const organiserPk = organizersPubKey.lookup(disclosedSaleId);
 
-        if(sendResult.change.is_some){
-            raisedTokenPool.writeCoin(
-                sendResult.change.value,
-                right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
-            );
-        }else{
-            raisedTokenPool.resetToDefault();
-        }
+        const sendResult = send(
+            pool,
+            left<ZswapCoinPublicKey, ContractAddress>(organizerPk),
+            saleInfo.amountRaised
+        );
+
+        sendResult.change.is_some ? raisedTokenPools.insertCoin(disclosedSaleId, sendResult.change.value, right<ZswapCoinPublicKey, ContractAddress>(kernel.self())) : raisedTokenPools.remove(disclosedSaleId);
+
         contractSalesInfo.insert(disclosedSaleId, SaleInfo {
             ...saleInfo,
             hasWithdrawn: true,
@@ -273,16 +195,80 @@ module SalesManager {
 
     circuit cancelSale(sale_id: Uint<32>) :[] {
         const disclosedSaleId = disclose(sale_id);
-        assert(ownPublicKey().bytes == superAdmin, "Unauthorized access. You can cancel this sale");
+        assert(ownPublicKey().bytes == superAdmin || admins.member(ownPublicKey().bytes), "Unauthorized access. You can cancel this sale");
         assert(contractSalesInfo.member(disclosedSaleId), "Sale does not exist");
         
         const saleInfo = contractSalesInfo.lookup(disclosedSaleId);
-        assert(contractSalesInfo.member(disclosedSaleId), "Sale does not exist");
-
         
         contractSalesInfo.insert(disclosedSaleId, SaleInfo {
             ...saleInfo,
             phase: SalePhase.Cancelled,
         });
+
+        TokenSold = TokenSold - saleInfo.totalTokenAmount; 
+    }
+
+    circuit joinAllowedList(userPk: Bytes<32>): [] {
+        assert(!allowedUser.member(disclose(userPk)), "User already exist");
+        allowedUser.insert(disclose(userPk));
     }
 }
+
+// circuit refund(sale_id: Uint<32>, refundAmount: Uint<64>): [] {
+    //     const disclosedSaleId = disclose(sale_id);
+    //     const disclosedRefundAmount = disclose(refundAmount);
+    //     const userPk = ownPublicKey().bytes;
+    //     assert(contractSalesInfo.member(disclosedSaleId), "Sale does not exist");
+    //     const saleInfo = contractSalesInfo.lookup(disclosedSaleId);
+    //     assert(saleInfo.phase == SalePhase.Cancelled, "Sale is on  can't apply for a refund");
+
+    //     const funder = public_key(disclose(local_secret_key()));
+        
+    //     const hasContributed = disclose(confirm_sale_in_private_state(disclosedSaleId));
+    //     assert(hasContributed, "You didn't participate in this sale");
+    //     assert(fundingInfo.member(funder), "Data not found onchain");
+    //     const funderOnchainInfo = fundingInfo.lookup(funder);
+        
+    //     const funderPrivateState = disclose(get_user_private_state_hash(disclosedSaleId));
+    //     const funderPrivateStateHash = generatePrivateStateHash(funderPrivateState, userPk);
+    //     assert(funderPrivateStateHash == funderOnchainInfo.privateStateHash, "Private state and onchain state mismatch");
+    //     assert(funderPrivateState.contribution >= disclosedRefundAmount, "Refund amount can not be greater than contribution");
+
+    //     const deduct = disclose(calculate_deduction(disclosedSaleId, disclosedRefundAmount));
+
+    //     if (funderPrivateState.contribution == disclosedRefundAmount) {
+    //         remove_sale_from_private_state(disclosedSaleId);
+    //         fundingInfo.remove(funder);
+
+    //         contractSalesInfo.insert(disclosedSaleId, SaleInfo {
+    //             ...saleInfo,
+    //             participants: (saleInfo.participants - 1),
+    //         });
+
+    //     } else {
+    //         const newPrivateState = UserPrivateState {
+    //             ...funderPrivateState,
+    //             contribution: funderPrivateState.contribution - disclosedRefundAmount,
+    //             totalAllocation: funderPrivateState.totalAllocation - deduct,
+    //         };
+    //         update_user_private_state(newPrivateState, disclosedSaleId);
+    
+    //         const userPrivateStateHash = generatePrivateStateHash(newPrivateState, userPk); 
+        
+    //         fundingInfo.insert(funder, FundingInfo {
+    //             privateStateHash: userPrivateStateHash,
+    //             claimComplete: false
+    //         });
+    //     }
+        
+    //     contractSalesInfo.insert(disclosedSaleId, SaleInfo {
+    //         ...saleInfo,
+    //         amountRaised: saleInfo.amountRaised - disclosedRefundAmount,
+    //         totalTokenSold: saleInfo.totalTokenSold - deduct
+    //     });
+
+    //     const pool = raisedTokenPools.lookup(disclosedSaleId);
+    //     const sendResult = send(pool, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()), disclosedRefundAmount);
+
+    //     sendResult.change.is_some ? raisedTokenPools.insertCoin(disclosedSaleId, sendResult.change.value, right<ZswapCoinPublicKey, ContractAddress>(kernel.self())) : raisedTokenPools.remove(disclosedSaleId);
+    // }

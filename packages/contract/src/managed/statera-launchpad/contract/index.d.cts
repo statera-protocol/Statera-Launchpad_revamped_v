@@ -12,7 +12,7 @@ export type SaleInfo = { target: bigint;
                          min: bigint;
                          max: bigint;
                          participants: bigint;
-                         organizer: Uint8Array;
+                         organizer: { bytes: Uint8Array };
                          hasWithdrawn: boolean;
                          hasEnded: boolean;
                          exchangeRatio: bigint;
@@ -21,7 +21,9 @@ export type SaleInfo = { target: bigint;
                          slope: bigint;
                          tgeAllocationPercentage: bigint;
                          vestingPeriod: bigint;
-                         vestClaimPercentagePerDay: bigint
+                         cliffPeriod: bigint;
+                         vestClaimPercentagePerDay: bigint;
+                         scaleFactor: bigint
                        };
 
 export enum Sale { Public = 0, Private = 1 }
@@ -62,40 +64,47 @@ export type Witnesses<T> = {
                              end_time_0: bigint,
                              totalAllocation_0: bigint,
                              claimedAllocation_0: bigint): [T, bigint];
-  calculate_deduction(context: __compactRuntime.WitnessContext<Ledger, T>,
-                      sale_id_0: bigint,
-                      refund_amount_0: bigint): [T, bigint];
+  recalculateAllocationAndUpdatePrivateState(context: __compactRuntime.WitnessContext<Ledger, T>,
+                                             sale_id_0: bigint,
+                                             contribution_0: bigint,
+                                             total_contribution_0: bigint,
+                                             total_token_sold_0: bigint): [T, bigint];
+  calculate_target(context: __compactRuntime.WitnessContext<Ledger, T>,
+                   total_amount_to_sell_0: bigint,
+                   price_0: bigint,
+                   scale_factor_0: bigint): [T, bigint];
 }
 
 export type ImpureCircuits<T> = {
-  joinAllowedList(context: __compactRuntime.CircuitContext<T>,
-                  userId_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
   createYourToken(context: __compactRuntime.CircuitContext<T>,
                   domain_sep_0: Uint8Array,
                   total_amount_0: bigint): __compactRuntime.CircuitResults<T, []>;
   createSale(context: __compactRuntime.CircuitContext<T>,
-             start_price_0: bigint,
-             total_amount_0: bigint,
+             price_0: bigint,
+             total_amount_to_sell_0: bigint,
              exchange_token_0: Uint8Array,
-             end_time_0: bigint,
-             min_0: bigint,
-             max_0: bigint,
+             sale_end_time_0: bigint,
+             min_contribtion_0: bigint,
+             max_contribtion_0: bigint,
              infoCID_0: Uint8Array,
              price_slope_0: bigint,
-             isPrivate_0: boolean,
              tge_allocation_percentage_0: bigint,
              vesting_duration_0: bigint,
-             is_overflow_0: boolean): __compactRuntime.CircuitResults<T, []>;
+             cliff_period_0: bigint,
+             is_overflow_0: boolean,
+             is_private_0: boolean,
+             organiser_0: { bytes: Uint8Array },
+             scale_factor_0: bigint): __compactRuntime.CircuitResults<T, []>;
   fundSale(context: __compactRuntime.CircuitContext<T>,
            coin_0: CoinInfo,
            sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
+  refund(context: __compactRuntime.CircuitContext<T>, sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
   claimTokens(context: __compactRuntime.CircuitContext<T>, sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
-  refund(context: __compactRuntime.CircuitContext<T>,
-         sale_id_0: bigint,
-         refundAmount_0: bigint): __compactRuntime.CircuitResults<T, []>;
   receiveFundsRaised(context: __compactRuntime.CircuitContext<T>,
                      sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
   cancelSale(context: __compactRuntime.CircuitContext<T>, sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
+  joinAllowedList(context: __compactRuntime.CircuitContext<T>,
+                  userPk_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
   receiveSaleToken(context: __compactRuntime.CircuitContext<T>, coin_0: CoinInfo): __compactRuntime.CircuitResults<T, []>;
 }
 
@@ -103,34 +112,35 @@ export type PureCircuits = {
 }
 
 export type Circuits<T> = {
-  joinAllowedList(context: __compactRuntime.CircuitContext<T>,
-                  userId_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
   createYourToken(context: __compactRuntime.CircuitContext<T>,
                   domain_sep_0: Uint8Array,
                   total_amount_0: bigint): __compactRuntime.CircuitResults<T, []>;
   createSale(context: __compactRuntime.CircuitContext<T>,
-             start_price_0: bigint,
-             total_amount_0: bigint,
+             price_0: bigint,
+             total_amount_to_sell_0: bigint,
              exchange_token_0: Uint8Array,
-             end_time_0: bigint,
-             min_0: bigint,
-             max_0: bigint,
+             sale_end_time_0: bigint,
+             min_contribtion_0: bigint,
+             max_contribtion_0: bigint,
              infoCID_0: Uint8Array,
              price_slope_0: bigint,
-             isPrivate_0: boolean,
              tge_allocation_percentage_0: bigint,
              vesting_duration_0: bigint,
-             is_overflow_0: boolean): __compactRuntime.CircuitResults<T, []>;
+             cliff_period_0: bigint,
+             is_overflow_0: boolean,
+             is_private_0: boolean,
+             organiser_0: { bytes: Uint8Array },
+             scale_factor_0: bigint): __compactRuntime.CircuitResults<T, []>;
   fundSale(context: __compactRuntime.CircuitContext<T>,
            coin_0: CoinInfo,
            sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
+  refund(context: __compactRuntime.CircuitContext<T>, sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
   claimTokens(context: __compactRuntime.CircuitContext<T>, sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
-  refund(context: __compactRuntime.CircuitContext<T>,
-         sale_id_0: bigint,
-         refundAmount_0: bigint): __compactRuntime.CircuitResults<T, []>;
   receiveFundsRaised(context: __compactRuntime.CircuitContext<T>,
                      sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
   cancelSale(context: __compactRuntime.CircuitContext<T>, sale_id_0: bigint): __compactRuntime.CircuitResults<T, []>;
+  joinAllowedList(context: __compactRuntime.CircuitContext<T>,
+                  userPk_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
   receiveSaleToken(context: __compactRuntime.CircuitContext<T>, coin_0: CoinInfo): __compactRuntime.CircuitResults<T, []>;
 }
 
@@ -141,13 +151,18 @@ export type Ledger = {
                   mt_index: bigint
                 };
   readonly TokenSold: bigint;
-  readonly raisedTokenPool: { nonce: Uint8Array,
-                              color: Uint8Array,
-                              value: bigint,
-                              mt_index: bigint
-                            };
+  raisedTokenPools: {
+    isEmpty(): boolean;
+    size(): bigint;
+    member(key_0: bigint): boolean;
+    lookup(key_0: bigint): { nonce: Uint8Array,
+                             color: Uint8Array,
+                             value: bigint,
+                             mt_index: bigint
+                           };
+    [Symbol.iterator](): Iterator<[bigint, { nonce: Uint8Array, color: Uint8Array, value: bigint, mt_index: bigint }]>
+  };
   readonly superAdmin: Uint8Array;
-  readonly SCALE_FACTOR: bigint;
   allowedUser: {
     isEmpty(): boolean;
     size(): bigint;
@@ -180,9 +195,7 @@ export declare class Contract<T, W extends Witnesses<T> = Witnesses<T>> {
   impureCircuits: ImpureCircuits<T>;
   constructor(witnesses: W);
   initialState(context: __compactRuntime.ConstructorContext<T>,
-               address_0: { bytes: Uint8Array },
-               initialNonce_0: Uint8Array,
-               initScaleFactor_0: bigint): __compactRuntime.ConstructorResult<T>;
+               initialNonce_0: Uint8Array): __compactRuntime.ConstructorResult<T>;
 }
 
 export declare function ledger(state: __compactRuntime.StateValue): Ledger;

@@ -13,32 +13,68 @@ module Utils {
             userPk
         );
     }
-    export circuit recieveFund(disclosedCoin: CoinInfo): []{
+    export circuit recieveFund(disclosedCoin: CoinInfo, disclosedSaleId: Uint<32>): []{
         receive(disclosedCoin);
 
+        const pool = raisedTokenPools.lookup(disclosedSaleId);
         /** Update the ledger balance */
-        const coinToInsert = raisedTokenPool.value > 0 ? 
-            mergeCoinImmediate(raisedTokenPool, disclosedCoin) :
+        const coinToInsert = pool.value > 0 ? 
+            mergeCoinImmediate(pool, disclosedCoin) :
             disclosedCoin;
 
-        raisedTokenPool.writeCoin(
+        raisedTokenPools.insertCoin(
+            disclosedSaleId,
             coinToInsert,
             right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
         );
     }
-    export circuit joinAllowedList(userId: Bytes<32>): [] {
-        assert(!allowedUser.member(disclose(userId)), "User already exist");
-        allowedUser.insert(disclose(userId));
-    }
-    export circuit calcClaimAllocation(saleInfo: SaleInfo, privateState: UserPrivateState): Uint<64> {
-        if (saleInfo.saleModel == Model.Overflow) {
-            if (saleInfo.target < saleInfo.totalTokenSold) {
+    export circuit updateState(disclosedSaleId: Uint<32>, saleInfo: SaleInfo, disclosedCoinAmount: Uint<128>, userPk: Bytes<32>, current_time: Uint<64>):[] {
+        const funder = public_key(disclose(local_secret_key()));
+        const allocation = disclose(calculate_total_allocation(saleInfo.exchangeRatio, saleInfo.slope, disclosedCoinAmount, saleInfo.totalTokenSold));
+        const hasContributedBefore = disclose(confirm_sale_in_private_state(disclosedSaleId));
+        if (hasContributedBefore) {
+            const funderPrivateState = disclose(get_user_private_state_hash(disclosedSaleId));
                 
-            } else {
-                return saleInfo.vestClaimPercentagePerDay == 100 ? privateState.totalAllocation : disclose(calculate_total_vest_claim(saleInfo.vestClaimPercentagePerDay, saleInfo.endTime, privateState.totalAllocation, privateState.claimedAllocation));
-            }
+            const updatedPrivateState = UserPrivateState {
+                ...funderPrivateState,
+                contribution: funderPrivateState.contribution + disclosedCoinAmount as Uint<64>,
+                totalAllocation: funderPrivateState.totalAllocation + allocation as Uint<64>
+            };
+
+            update_user_private_state(updatedPrivateState, disclosedSaleId);
+
+            const userPrivateStateHash = generatePrivateStateHash(updatedPrivateState, userPk);
+
+            fundingInfo.insert(funder, FundingInfo {
+                privateStateHash: userPrivateStateHash,
+                claimComplete: false
+            });
         } else {
-            return saleInfo.vestClaimPercentagePerDay == 100 ? privateState.totalAllocation : disclose(calculate_total_vest_claim(saleInfo.vestClaimPercentagePerDay, saleInfo.endTime, privateState.totalAllocation, privateState.claimedAllocation));
+            const newPrivateState = UserPrivateState {
+                saleId: disclosedSaleId,
+                contribution: disclosedCoinAmount,
+                totalAllocation: allocation,
+                claimedAllocation: 0
+            };
+
+            update_user_private_state(newPrivateState, disclosedSaleId);
+
+            const userPrivateStateHash = generatePrivateStateHash(newPrivateState, userPk);
+
+            fundingInfo.insert(funder, FundingInfo {
+                privateStateHash: userPrivateStateHash,
+                claimComplete: false
+            });
+
         }
+        contractSalesInfo.insert(disclosedSaleId, SaleInfo {
+            ...saleInfo,
+            participants: hasContributedBefore ? saleInfo.participants : (saleInfo.participants + 1) as Uint<16>,
+            amountRaised: disclosedCoinAmount + saleInfo.amountRaised as Uint<64>,
+            totalTokenSold: allocation + saleInfo.totalTokenSold as Uint<64>,
+            phase: saleInfo.saleModel == Model.Fixed ?
+                saleInfo.amountRaised == saleInfo.target || saleInfo.endTime < current_time ? SalePhase.Ended : SalePhase.Live : 
+                current_time > saleInfo.endTime ? SalePhase.Ended : SalePhase.Live,
+        });
     }
 }

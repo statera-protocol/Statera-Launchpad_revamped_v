@@ -11,15 +11,13 @@ import TokenMint;
 import SalesManager;
 
 /** exports types, circuits and witnesses from imported modules, making them accessible **/
-export { createSale, fundSale, claimTokens, SaleInfo, Sale, raisedTokenPool, superAdmin, contractSalesInfo, TVL, createYourToken, fundingInfo, SaleInfo, FundingInfo, UserPrivateState, refund, receiveFundsRaised, CoinInfo, TokenSold, joinAllowedList, allowedUser, SCALE_FACTOR, cancelSale};
+export { createSale, fundSale, claimTokens, SaleInfo, Sale, raisedTokenPools, superAdmin, contractSalesInfo, TVL, createYourToken, fundingInfo, SaleInfo, FundingInfo, UserPrivateState, refund, receiveFundsRaised, CoinInfo, TokenSold, joinAllowedList, allowedUser, cancelSale};
 
 /** Just as in ts, constructor initializes ledger variables with specified parameter during deployment **/
-constructor(address: ZswapCoinPublicKey, initialNonce: Bytes<32>, initScaleFactor: Uint<64>) {
+constructor(initialNonce: Bytes<32>) {
     nonce = disclose(initialNonce);
     uniqueIndex.increment(1);
-    organizerPubKey = disclose(address);
     superAdmin = ownPublicKey().bytes;
-    SCALE_FACTOR = disclose(initScaleFactor);
 }
 
 export circuit receiveSaleToken(coin: CoinInfo): [] {

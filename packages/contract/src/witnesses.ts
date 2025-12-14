@@ -55,15 +55,33 @@ export const witnesses = {
       return [privateState, allocation];
     }
   },
+  calculate_target: (
+    { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,
+    total_amount_to_sell: bigint,
+    price: bigint,
+    scale_factor: bigint
+  ): [StateraLaunchpadPrivateState, bigint] => {
+    const target = (total_amount_to_sell * price) / scale_factor;
+    return [privateState, target];
+  },
   calculate_overflow_total_allocation: (
     { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,
+    sale_id: bigint,
     contribution: bigint,
     total_contribution: bigint,
     total_token_sold: bigint
   ): [StateraLaunchpadPrivateState, bigint] => {
-      const percentage = (contribution / total_contribution) * 100n;
-      const allocation = total_token_sold / percentage
+    const percentage = (contribution / total_contribution) * 100n;
+    const allocation = total_token_sold / percentage;
+
+    const idx = privateState.saleMetadata.findIndex(
+      (data) => data.saleId === sale_id
+    );
+    if (idx !== -1) {
       return [privateState, allocation];
+    }
+    privateState.saleMetadata[idx].totalAllocation = allocation;
+    return [privateState, allocation];
   },
   confirm_sale_in_private_state: (
     { privateState }: WitnessContext<Ledger, StateraLaunchpadPrivateState>,

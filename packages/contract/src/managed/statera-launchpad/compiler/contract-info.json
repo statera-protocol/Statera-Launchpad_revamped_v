@@ -1,24 +1,6 @@
 {
   "circuits": [
     {
-      "name": "joinAllowedList",
-      "pure": false,
-      "arguments": [
-        {
-          "name": "userId",
-          "type": {
-            "type-name": "Bytes",
-            "length": 32
-          }
-        }
-      ],
-      "result-type": {
-        "type-name": "Tuple",
-        "types": [
-        ]
-      }
-    },
-    {
       "name": "createYourToken",
       "pure": false,
       "arguments": [
@@ -48,14 +30,14 @@
       "pure": false,
       "arguments": [
         {
-          "name": "start_price",
+          "name": "price",
           "type": {
             "type-name": "Uint",
             "maxval": 18446744073709551615
           }
         },
         {
-          "name": "total_amount",
+          "name": "total_amount_to_sell",
           "type": {
             "type-name": "Uint",
             "maxval": 18446744073709551615
@@ -69,21 +51,21 @@
           }
         },
         {
-          "name": "end_time",
+          "name": "sale_end_time",
           "type": {
             "type-name": "Uint",
             "maxval": 18446744073709551615
           }
         },
         {
-          "name": "min",
+          "name": "min_contribtion",
           "type": {
             "type-name": "Uint",
             "maxval": 18446744073709551615
           }
         },
         {
-          "name": "max",
+          "name": "max_contribtion",
           "type": {
             "type-name": "Uint",
             "maxval": 18446744073709551615
@@ -104,12 +86,6 @@
           }
         },
         {
-          "name": "isPrivate",
-          "type": {
-            "type-name": "Boolean"
-          }
-        },
-        {
           "name": "tge_allocation_percentage",
           "type": {
             "type-name": "Uint",
@@ -124,9 +100,45 @@
           }
         },
         {
+          "name": "cliff_period",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
           "name": "is_overflow",
           "type": {
             "type-name": "Boolean"
+          }
+        },
+        {
+          "name": "is_private",
+          "type": {
+            "type-name": "Boolean"
+          }
+        },
+        {
+          "name": "organiser",
+          "type": {
+            "type-name": "Struct",
+            "name": "ZswapCoinPublicKey",
+            "elements": [
+              {
+                "name": "bytes",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "scale_factor",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
           }
         }
       ],
@@ -185,7 +197,7 @@
       }
     },
     {
-      "name": "claimTokens",
+      "name": "refund",
       "pure": false,
       "arguments": [
         {
@@ -203,7 +215,7 @@
       }
     },
     {
-      "name": "refund",
+      "name": "claimTokens",
       "pure": false,
       "arguments": [
         {
@@ -211,13 +223,6 @@
           "type": {
             "type-name": "Uint",
             "maxval": 4294967295
-          }
-        },
-        {
-          "name": "refundAmount",
-          "type": {
-            "type-name": "Uint",
-            "maxval": 18446744073709551615
           }
         }
       ],
@@ -254,6 +259,24 @@
           "type": {
             "type-name": "Uint",
             "maxval": 4294967295
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "joinAllowedList",
+      "pure": false,
+      "arguments": [
+        {
+          "name": "userPk",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
           }
         }
       ],
@@ -554,7 +577,7 @@
       }
     },
     {
-      "name": "calculate_deduction",
+      "name": "recalculateAllocationAndUpdatePrivateState",
       "arguments": [
         {
           "name": "sale_id",
@@ -564,7 +587,51 @@
           }
         },
         {
-          "name": "refund_amount",
+          "name": "contribution",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 340282366920938463463374607431768211455
+          }
+        },
+        {
+          "name": "total_contribution",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "total_token_sold",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      }
+    },
+    {
+      "name": "calculate_target",
+      "arguments": [
+        {
+          "name": "total_amount_to_sell",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "price",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "scale_factor",
           "type": {
             "type-name": "Uint",
             "maxval": 18446744073709551615
