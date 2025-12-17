@@ -39,6 +39,12 @@ export type UserPrivateState = { saleId: bigint;
 
 export type CoinInfo = { nonce: Uint8Array; color: Uint8Array; value: bigint };
 
+export type QualifiedCoinInfo = { nonce: Uint8Array;
+                                  color: Uint8Array;
+                                  value: bigint;
+                                  mt_index: bigint
+                                };
+
 export type Witnesses<T> = {
   local_secret_key(context: __compactRuntime.WitnessContext<Ledger, T>): [T, Uint8Array];
   get_current_time(context: __compactRuntime.WitnessContext<Ledger, T>): [T, bigint];
@@ -145,24 +151,22 @@ export type Circuits<T> = {
 }
 
 export type Ledger = {
-  readonly TVL: { nonce: Uint8Array,
-                  color: Uint8Array,
-                  value: bigint,
-                  mt_index: bigint
-                };
+  readonly TVL: QualifiedCoinInfo;
   readonly TokenSold: bigint;
   raisedTokenPools: {
     isEmpty(): boolean;
     size(): bigint;
     member(key_0: bigint): boolean;
-    lookup(key_0: bigint): { nonce: Uint8Array,
-                             color: Uint8Array,
-                             value: bigint,
-                             mt_index: bigint
-                           };
-    [Symbol.iterator](): Iterator<[bigint, { nonce: Uint8Array, color: Uint8Array, value: bigint, mt_index: bigint }]>
+    lookup(key_0: bigint): QualifiedCoinInfo;
+    [Symbol.iterator](): Iterator<[bigint, QualifiedCoinInfo]>
   };
   readonly superAdmin: Uint8Array;
+  admins: {
+    isEmpty(): boolean;
+    size(): bigint;
+    member(elem_0: Uint8Array): boolean;
+    [Symbol.iterator](): Iterator<Uint8Array>
+  };
   allowedUser: {
     isEmpty(): boolean;
     size(): bigint;

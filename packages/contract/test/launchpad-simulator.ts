@@ -103,7 +103,7 @@ export class LaunchpadSimulator {
     organiser: string
   ): void {
     const saleData = [
-      start_price,
+      start_price * scale_factor,
       total_amount * scale_factor,
       exchange_token,
       end_time,

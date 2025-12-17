@@ -7,7 +7,7 @@ import Utils;
 import TokenMint;
 import SalesManager;
 
-export { createSale, fundSale, claimTokens, SaleInfo, Sale, raisedTokenPools, superAdmin, contractSalesInfo, TVL, createYourToken, fundingInfo, SaleInfo, FundingInfo, UserPrivateState, refund, receiveFundsRaised, CoinInfo, TokenSold, joinAllowedList, allowedUser, cancelSale};
+export { createSale, fundSale, claimTokens, SaleInfo, Sale, raisedTokenPools, superAdmin, contractSalesInfo, TVL, createYourToken, fundingInfo, SaleInfo, FundingInfo, UserPrivateState, refund, receiveFundsRaised, CoinInfo, TokenSold, joinAllowedList, allowedUser, cancelSale, CoinInfo, QualifiedCoinInfo, admins };
 
 constructor(initialNonce: Bytes<32>) {
     nonce = disclose(initialNonce);

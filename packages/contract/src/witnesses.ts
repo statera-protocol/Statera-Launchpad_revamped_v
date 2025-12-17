@@ -6,9 +6,13 @@ import { WitnessContext } from "@midnight-ntwrk/compact-runtime";
 
 export type StateraLaunchpadPrivateState = {
   readonly secretKey: Uint8Array;
-  // sales metadata should be a readonly value - for testing sake, it will be mutable
   saleMetadata: UserPrivateState[];
 };
+
+export const createLaunchpadPrivateState = (secret_key: Uint8Array) => ({
+  secretKey: secret_key,
+  saleMetadata: [],
+});
 
 export const witnesses = {
   local_secret_key: ({
