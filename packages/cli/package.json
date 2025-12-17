@@ -12,8 +12,8 @@
     "build": "rm -rf dist && tsc --project tsconfig.build.json"
   },
   "dependencies": {
-    "@statera/launchpad-api": "workspace:*",
-    "@statera/launchpad-contract": "workspace:*",
+    "@repo/launchpad-api": "workspace:*",
+    "@repo/launchpad-contract": "workspace:*",
     "pino": "^8.16.1",
     "ws": "^8.14.2"
   }

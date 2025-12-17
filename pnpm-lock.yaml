@@ -161,7 +161,7 @@ importers:
 
   packages/api:
     dependencies:
-      '@statera/launchpad-contract':
+      '@repo/launchpad-contract':
         specifier: workspace:*
         version: link:../contract
       pino:
@@ -198,10 +198,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@statera/launchpad-api':
+      '@repo/launchpad-api':
         specifier: workspace:*
         version: link:../api
-      '@statera/launchpad-contract':
+      '@repo/launchpad-contract':
         specifier: workspace:*
         version: link:../contract
       pino:

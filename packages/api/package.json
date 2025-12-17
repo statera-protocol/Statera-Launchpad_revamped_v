@@ -1,5 +1,5 @@
 {
-  "name": "@statera/launchpad-api",
+  "name": "@repo/launchpad-api",
   "type": "module",
   "version": "0.1.0",
   "main": "./dist/index.js",
@@ -15,7 +15,7 @@
     "prebuild": "rm -rf dist && tsc --project tsconfig.build.json"
   },
   "dependencies": {
-    "@statera/launchpad-contract": "workspace:*",
+    "@repo/launchpad-contract": "workspace:*",
     "pino": "^8.16.1",
     "uuid": "^11.1.0",
     "ws": "8.17.1"
